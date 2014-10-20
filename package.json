@@ -1,10 +1,9 @@
 {
   "name": "byobController",
   "version": "0.0.2",
-  "description": "Experiment",
   "dependencies": {
-    "express": "4.3.1",
-    "socket.io": "0.8.5"
+    "express": "x",
+    "socket.io": "x"
   },
   "engines": {
     "node": "0.10.x"
