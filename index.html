@@ -1,0 +1,603 @@
+<!--
+Badr Ismaili 2013-2014
+-->
+<html>
+<head>
+	<meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' name='viewport' />
+
+	<title>untitled</title>
+	<style>
+	body{
+		margin:0px;
+		background:#111;
+
+	}
+	#nickWrap{
+		display:none;
+		font-family: 'Play', sans-serif;
+		color:#fff;
+		margin:auto;
+		margin-left: auto;
+		margin-right: auto;
+		padding-top:20px;
+		width:70%;
+		height:90%;
+		top:0px;left:0px;bottom:0px;right:0px;
+	}
+
+	h1{
+		font-family: 'Alan', sans-serif;
+		color:#fff;
+		font-size:3em;
+		text-align:center;
+		text-shadow: 5px 5px #222;
+		padding-top:40%;
+
+		width:100%;
+		height:20%;
+
+
+	}
+	#nickWrap p{
+		position:relative;
+		font-size:1.5em;
+
+		width:100%;
+		height:3%;
+	}
+
+	input{
+		position:relative;
+		background-color: #000;
+		border:solid 2px #aaa;
+		color: #fff;
+		padding-left:20;
+		border-radius:10px;
+		font-size:1em;
+
+		height: 10%;
+		width: 100%;
+
+	}
+	input[type=submit]{
+		border-bottom:solid 5px #333;
+		margin-top:10%;
+		padding-bottom:20px;
+		color:#fff;
+		font-family: 'Play', sans-serif;
+		font-size:1.9em;
+		background-color:#444;
+		height: 10%;
+		width: 100%;
+	}
+
+
+	#controllerWrap{
+		display:none;
+		width:100%;
+		height:100%;
+		margin:0px;
+		padding:0px;
+	}
+	#controllerCanvas{
+		width:100%;
+		height:100%;
+	}
+
+	#projectorWrap{
+		display:none;
+		width:900px;
+		height:500px;
+		padding-top:100px;
+		margin-left: auto ;
+		margin-right: auto ;
+
+	}
+	#projectorCanvas{
+		width:900px;
+		height:500px;
+		margin-left: auto ;
+		margin-right: auto ;
+		margin-top: auto ;
+		margin-bottom: auto ;
+	}
+	</style>
+
+
+	<script src="jquery-1.10.1.min.js"></script>
+	<script src="/socket.io/socket.io.js"></script>
+	<link href='http://fonts.googleapis.com/css?family=Allan' rel='stylesheet' type='text/css'>
+	<link href='http://fonts.googleapis.com/css?family=Play' rel='stylesheet' type='text/css'>
+
+
+
+	<script type="text/javascript">
+
+	if ( !window.requestAnimationFrame ) {
+
+		window.requestAnimationFrame = ( function() {
+
+			return window.webkitRequestAnimationFrame ||
+			window.mozRequestAnimationFrame ||
+			window.oRequestAnimationFrame ||
+			window.msRequestAnimationFrame ||
+			function( /* function FrameRequestCallback */ callback, /* DOMElement Element */ element ) {
+
+				window.setTimeout( callback, 1000 / 60 );
+
+			};
+
+		} )();
+
+	}
+
+
+	window.onload = function(){
+
+
+	//canvas setup
+
+
+	///sockets
+	var socket = io.connect();
+	var idsOnline = 0;
+	var idsLoc = [];
+	var id = [];
+
+	var $nickForm = $('#setNick');
+	var $nickError = $('#nickError');
+	var $nickBox = $('#nickname');
+
+	var playersOnScreen = [];
+	var mouseX = 0;
+	var mouseY = 0;
+	var nickname = "nickname not set";
+	var fontSize =  30;
+	var text = undefined;
+	var textWidth = undefined;
+	
+
+
+
+	var controller = {
+		playerColor:"black",
+		alphaCircle:1,
+		canvas:undefined,
+		ctx:undefined,
+		buttonGr:undefined,
+		player:{x:50,y:50},
+		stick:{x:undefined,y:undefined,x2:undefined,y2:undefined,angle:undefined,distance:undefined,dash:undefined,down:false},
+		dashTimer:{newTime:undefined,delayTime:150},
+		direction:{left:false,right:false,up:false,down:false},
+		prevDirection:{left:false,right:false,up:false,down:false},
+		stickTouchId: -1
+		,
+
+		init:function(){
+			document.getElementById('nickWrap').style.display = "block";
+			canvas = document.getElementById("controllerCanvas")
+			canvas.width = window.innerWidth
+			canvas.height = window.innerHeight
+			ctx = canvas.getContext("2d")
+			buttonGr = ctx.createLinearGradient(100,0,0,canvas.height)
+			buttonGr.addColorStop(0,'#fff')
+			buttonGr.addColorStop(1,'#ccc')
+
+
+			$nickForm.submit(function(e){
+				e.preventDefault();
+				if($nickBox.val()!=""){
+					console.log($nickBox.val());
+					socket.emit('idAvailable', $nickBox.val(),function(available){
+						console.log(available);
+						if(available){
+							nickname = $nickBox.val();
+							$('#nickWrap').hide();
+							$('#controllerWrap').show();
+							controller.bindEvents();
+							controller.draw();
+							console.log(canvas)
+							text = "name: "+nickname;
+
+
+						} else{
+							$nickError.html('That name is already taken.');
+						}
+						$nickBox.val('');
+
+					});
+				}else{
+					$nickError.html('Please enter a name');
+				}
+
+			});
+
+
+
+		},
+		bindEvents:function(){
+
+
+			window.addEventListener('touchstart',function(e){
+				controller.onTouchStart(e);
+			});
+			window.addEventListener("touchmove",function(e){
+				controller.onTouchMove(e);
+			});
+			window.addEventListener("touchend",function(e){
+				controller.onTouchEnd(e);
+			});
+/*
+				window.addEventListener('mousedown',function(e){
+					controller.onMouseDown(e);
+				});
+				window.addEventListener('mousemove',function(e){
+					controller.onMouseMove(e);
+				});
+				window.addEventListener('mouseup',function(e){
+					controller.onMouseUp(e);
+				});
+	
+*/
+},
+
+onTouchStart:function(e){
+	e.preventDefault;
+	for(var i = 0; i<e.changedTouches.length; i++){
+		var touch =e.changedTouches[i]; 
+		if(controller.stickTouchId<0){
+			controller.stickTouchId = touch.identifier; 
+			controller.stick.down = true;
+			controller.stick.x = touch.clientX;
+			controller.stick.y = touch.clientY;
+			console.log(controller.stick);
+
+			controller.dash("begin");
+		}
+	}
+},
+
+
+onTouchMove:function(e){
+
+	e.preventDefault();
+
+	for(var i = 0; i<e.changedTouches.length; i++){
+		var touch =e.changedTouches[i]; 
+		if(controller.stickTouchId == touch.identifier){
+
+			if(controller.stick.down){
+				controller.distance();
+				controller.dash("dash");
+
+				controller.stick.x2 = touch.clientX;
+				controller.stick.y2 = touch.clientY;
+				controller.stick.angle = Math.atan2(controller.stick.y-controller.stick.y2,(controller.stick.x-controller.stick.x2))* 180 / Math.PI;
+
+				if(Math.abs(controller.stick.angle) < 45){
+			//		console.log('left');
+			controller.direction = {left:true,right:false,up:false,down:false}
+		}
+		if(Math.abs(controller.stick.angle- 90) < 45){
+				//	console.log('up');
+				controller.direction = {left:false,right:false,up:true,down:false}
+			}
+			if(Math.abs(controller.stick.angle+90) < 45){
+			//		console.log('down');
+			controller.direction = {left:false,right:false,up:false,down:true}
+		}
+		if((Math.abs(Math.abs(controller.stick.angle)-180) < 45)){
+				//	console.log('right');
+				controller.direction = {left:false,right:true,up:false,down:false}
+			}
+				//console.log(controller.direction.left);
+				//console.log(controller.prevDirection.left);
+				/*
+				if(controller.direction.left !== controller.prevDirection.left || controller.direction.right !== controller.prevDirection.right || controller.direction.up !== controller.prevDirection.up || controller.direction.down !== controller.prevDirection.down ){
+					*/
+				//	console.log('send')
+				socket.emit('controllerInput',{
+					'id':nickname,
+					'leftButton': controller.direction.left,
+					'rightButton': controller.direction.right,
+					'upButton':controller.direction.up,
+					'downButton':controller.direction.down
+				});
+				controller.prevDirection = controller.direction;
+						//console.log(nickname)
+					/*
+					}
+					*/
+				}
+			}
+		}
+	},
+	onTouchEnd:function(e){
+		for(var i = 0; i<e.changedTouches.length; i++){
+			var touch =e.changedTouches[i]; 
+			if(controller.stickTouchId == touch.identifier)
+			{
+				controller.stickTouchId = -1; 
+
+				controller.stick= {x:undefined,y:undefined,x2:undefined,y2:undefined,angle:undefined,down:false};
+				controller.direction = {left:false,right:false,up:false,down:false};
+			}
+		}
+
+	}
+	,
+	onMouseDown:function(e){
+		e.preventDefault;
+		controller.stick.down = true;
+		controller.stick.x = e.offsetX;
+		controller.stick.y = e.offsetY;
+		console.log(controller.stick)
+	},
+
+
+
+
+	onMouseMove:function(e){
+		e.preventDefault();
+		if(controller.stick.down){
+			controller.distance();
+			controller.stick.x2 = e.offsetX;
+			controller.stick.y2 = e.offsetY;
+			controller.stick.angle = Math.atan2(controller.stick.y-controller.stick.y2,(controller.stick.x-controller.stick.x2))* 180 / Math.PI;
+
+			if(Math.abs(controller.stick.angle) < 45){
+				console.log('left');
+				controller.direction = {left:true,right:false,up:false,down:false}
+			}
+			if(Math.abs(controller.stick.angle- 90) < 45){
+				console.log('up');
+				controller.direction = {left:false,right:false,up:true,down:false}
+			}
+			if(Math.abs(controller.stick.angle+90) < 45){
+				console.log('down');
+				controller.direction = {left:false,right:false,up:false,down:true}
+			}
+			if((Math.abs(Math.abs(controller.stick.angle)-180) < 45)){
+				console.log('right');
+				controller.direction = {left:false,right:true,up:false,down:false}
+			}
+			if(controller.direction !== controller.prevDirection)
+				socket.emit('controllerInput',{
+					'id':nickname,
+					'leftButton': controller.direction.left,
+					'rightButton': controller.direction.right,
+					'upButton':controller.direction.up,
+					'downButton':controller.direction.down
+				});
+			controller.prevDirection = controller.direction;
+			console.log('sending')
+		}
+	},
+	onMouseUp:function(e){
+			//reset stick
+			controller.stick= {x:undefined,y:undefined,x2:undefined,y2:undefined,angle:undefined,down:false};
+			controller.direction = {left:false,right:false,up:false,down:false};
+		},
+
+		distance:function(){
+			//calculating distance
+
+
+
+			var dx = controller.stick.x2 - controller.stick.x;
+			var dy = controller.stick.y2 - controller.stick.y;
+			controller.stick.distance = Math.sqrt(dx*dx + dy*dy);
+
+
+				//console.log(controller.stick.distance);
+
+			},
+			dash:function(dashState){
+				currentTime = new Date().getTime();
+
+				switch(dashState){
+
+					case "begin":
+					controller.dashTimer.newTime = currentTime + controller.dashTimer.delayTime;
+					break;
+					case "dash":
+					console.log(controller.dashTimer.newTime );
+					console.log(currentTime)
+					if(controller.dashTimer.newTime > currentTime){
+
+
+						console.log("Dash");
+						if(controller.stick.distance > canvas.width/4){
+							controller.stick.dash = true;
+						}
+
+					}else{
+						console.log("its over");
+						controller.stick.dash = undefined;
+
+
+					}
+					break;
+					case "end":
+
+					break;
+				}
+			},
+			draw:function(){
+				canvas.width = window.innerWidth;
+				canvas.height = window.innerHeight;
+
+
+				ctx.fillStyle="#111";
+				ctx.fillRect(0,0,canvas.width,canvas.height);
+
+				ctx.fillStyle=controller.playerColor;
+				ctx.fillRect(0,50,canvas.width,100);
+			//controller.buttonsLoop();
+			controller.stickDraw();
+
+
+			//swipe to create an player in unity. 
+			//if player has created a player he gets his inserted name with a color
+			if(controller.playerColor === "black"){
+				ctx.fillStyle = "#fff"
+				ctx.font=fontSize+"px Verdana";
+				textWidth = ctx.measureText("swipe to play!").width;
+				ctx.fillText("swipe to play!",canvas.width/2-(textWidth/2),100);
+			}else{
+				ctx.fillStyle = "#fff"
+				ctx.font=fontSize+"px Verdana";
+				textWidth = ctx.measureText(text).width;
+				ctx.fillText(text,canvas.width/2-(textWidth/2),100);
+			}
+
+			controller.drawLog();
+
+
+			window.requestAnimationFrame(controller.draw);
+		},
+
+
+		drawLog:function(){
+			ctx.fillStyle = "#fff";
+			//ctx.fillRect(0,0,200,200);
+			ctx.font= "20px Verdana";
+			ctx.fillText("Distance: " + controller.stick.distance,50,50);
+			ctx.fillText("Dash: " + controller.stick.dash,50,80);
+		},
+
+		stickDraw:function(){
+	//controller.stick.x = canvas.width/2;
+	//controller.stick.y = canvas.height/2;
+
+	ctx.shadowColor = '#ffffff';
+	ctx.shadowBlur = 10;
+	ctx.shadowOffsetX = 0;
+	ctx.shadowOffsetY = 0;
+	ctx.beginPath(); 
+	ctx.strokeStyle = "#fff"; 
+	ctx.lineWidth = 6; 
+	ctx.arc(controller.stick.x2, controller.stick.y2, 40,0,Math.PI*2,true); 
+	ctx.stroke();
+	ctx.beginPath(); 
+	ctx.lineWidth = 2; 
+	ctx.arc(controller.stick.x, controller.stick.y, 60,0,Math.PI*2,true); 
+	ctx.stroke();
+	ctx.beginPath(); 
+	ctx.arc(controller.stick.x2, controller.stick.y2, 40, 0,Math.PI*2, true); 
+	ctx.stroke(); 
+	ctx.closePath();
+	ctx.beginPath();;
+	ctx.moveTo(controller.stick.x,controller.stick.y);
+	ctx.lineTo(controller.stick.x2,controller.stick.y2);
+	ctx.stroke();
+
+},
+}// end controller
+
+/*--------------------------------------------- */
+var projector = {
+	porjectorCanvas:undefined,
+	ctx:undefined,
+	pcW:undefined,
+	pcW:undefined,
+
+	init:function(){
+		console.log('projectorInitStart');
+		document.getElementById('projectorWrap').style.display = "block";
+		projectorCanvas = document.getElementById("projectorCanvas")
+		, ctx = projectorCanvas.getContext("2d")
+		, pcW = projectorCanvas.width
+		, pcH = projectorCanvas.height;
+
+		console.log('projectorInitDone')
+		projector.draw();
+	},
+	draw:function(){
+		projectorCanvas.width = 900;
+		projectorCanvas.height = 500;
+
+		ctx.fillStyle ="#000";
+		ctx.fillRect(0,0,projectorCanvas.width,projectorCanvas.height);
+		ctx.fillStyle="#fff";
+		ctx.fillRect(projectorCanvas.width/2,projectorCanvas.height/2,10,10)
+		ctx.fillStyle="#fff";
+		ctx.font='12px Arial';
+		ctx.fillText("There are: "+idsOnline+" creatures behind the button",10,20);
+
+		ctx.beginPath();
+		ctx.fillStyle="#ef3232";
+		ctx.arc(projectorCanvas.width/2,projectorCanvas.height/2,100,0,Math.PI*2,true);
+		ctx.fill();
+		ctx.closePath();
+
+
+
+		for( i = 0; i < idsOnline; i++){
+		//		ctx.drawImage(handImg,idsLoc[i].x,idsLoc[i].y);
+		//		ctx.fillRect(idsLoc[i].x-20,idsLoc[i].y-20,50,50);
+		ctx.font='20px Arial';
+		ctx.fillStyle="#fff";
+		ctx.fillText(ids[i],idsLoc[i].x+10,idsLoc[i].y+15);
+	}
+
+	window.requestAnimationFrame(projector.draw);
+
+}
+}
+
+
+socket.on('idsOnline', function(dataId,dataLoc){
+	idsOnline = dataId.length;
+	ids = dataId;
+	idsLoc = dataLoc;
+});
+
+socket.on('playerChangeColor', function(data){
+	if(data.id === nickname){
+		controller.playerColor = data.color;
+	}
+});
+
+if( /Android|webOS|iPhone|Chrome|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ) {
+	controller.init();
+
+}else{
+	//If projector is on this page use: projector.init();
+	//projector.init();
+	controller.init();
+}
+}
+</script>
+</head>
+<body>
+	<div id="nickWrap">
+
+		<p>Enter a name: </p>
+		<p id="nickError"></p>
+		<form id="setNick">
+			<input id="nickname" placeholder="Your Nickname" autofocus></input>
+			<input type="submit" value="Join Game"></input>
+		</form>
+		<h1>BYOB 26</h1>
+	</div>
+
+	<div id="projectorWrap">
+		<canvas id="projectorCanvas" width="1000px" height="1000px">
+			<a href="http://google.com/chrome">
+				your browser doesnt suppert HTML 5 Canvas please download a newer version"
+			</a>
+		</canvas>
+	</div>
+
+	<div id="controllerWrap">
+		<canvas id="controllerCanvas" width="1000px" height="1000px">
+			<a href="http://google.com/chrome">
+				your browser doesnt suppert HTML 5 Canvas please download a newer version"
+			</a>
+		</canvas>
+	</div>
+
+
+</body>
+</html>
