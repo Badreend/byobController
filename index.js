@@ -89,6 +89,6 @@ socket.on('disconnect',function(data){
 
 
 http.listen(8000, function(){
-  console.log('serverIsworking');
+  console.log('serverIsworkin2');
 });
 
