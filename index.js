@@ -87,8 +87,9 @@ socket.on('disconnect',function(data){
 
 
 
+var port = process.env.PORT || 5000;
 
-http.listen(8000, function(){
+http.listen(port, function(){
   console.log('serverIsworkin2');
 });
 
