@@ -157,7 +157,7 @@ Badr Ismaili 2013-2014
 	var textWidth = undefined;
 	
 
-
+	var testPlayer = {x:100,y:100,xunits:0,yunits:0};
 
 	var controller = {
 		playerColor:"black",
@@ -221,12 +221,14 @@ Badr Ismaili 2013-2014
 			window.addEventListener('touchstart',function(e){
 				controller.onTouchStart(e);
 			});
+
 			window.addEventListener("touchmove",function(e){
 				controller.onTouchMove(e);
 			});
 			window.addEventListener("touchend",function(e){
 				controller.onTouchEnd(e);
 			});
+
 /*
 				window.addEventListener('mousedown',function(e){
 					controller.onMouseDown(e);
@@ -272,7 +274,22 @@ onTouchMove:function(e){
 
 				controller.stick.x2 = touch.clientX;
 				controller.stick.y2 = touch.clientY;
-				controller.stick.angle = Math.atan2(controller.stick.y-controller.stick.y2,(controller.stick.x-controller.stick.x2))* 180 / Math.PI;
+				controller.stick.angle = (Math.atan2(controller.stick.y2-controller.stick.y,(controller.stick.x2-controller.stick.x))) ;
+				var speed = controller.stick.distance/5000;
+				if(isNaN(speed)){
+					speed = 0;
+
+				}
+				console.log(speed);
+
+				var xunits = Math.cos(controller.stick.angle)*speed;
+				var yunits = Math.sin(controller.stick.angle)*speed;
+				testPlayer.xunits += xunits;
+				testPlayer.yunits += yunits;
+				
+				//console.log(xunits);
+				//console.log(yunits);
+
 
 				if(Math.abs(controller.stick.angle) < 45){
 			//		console.log('left');
@@ -345,6 +362,7 @@ onTouchMove:function(e){
 			controller.stick.y2 = e.offsetY;
 			controller.stick.angle = Math.atan2(controller.stick.y-controller.stick.y2,(controller.stick.x-controller.stick.x2))* 180 / Math.PI;
 
+
 			if(Math.abs(controller.stick.angle) < 45){
 				console.log('left');
 				controller.direction = {left:true,right:false,up:false,down:false}
@@ -401,8 +419,8 @@ onTouchMove:function(e){
 					controller.dashTimer.newTime = currentTime + controller.dashTimer.delayTime;
 					break;
 					case "dash":
-					console.log(controller.dashTimer.newTime );
-					console.log(currentTime)
+				//	console.log(controller.dashTimer.newTime );
+				//	console.log(currentTime)
 					if(controller.dashTimer.newTime > currentTime){
 
 
@@ -412,7 +430,7 @@ onTouchMove:function(e){
 						}
 
 					}else{
-						console.log("its over");
+					//	console.log("its over");
 						controller.stick.dash = undefined;
 
 
@@ -431,12 +449,13 @@ onTouchMove:function(e){
 				ctx.fillStyle="#111";
 				ctx.fillRect(0,0,canvas.width,canvas.height);
 
-				ctx.fillStyle=controller.playerColor;
-				ctx.fillRect(0,50,canvas.width,100);
+			ctx.fillStyle=controller.playerColor;
+			ctx.fillRect(0,50,canvas.width,100);
 			//controller.buttonsLoop();
 			controller.stickDraw();
 
 
+		
 			//swipe to create an player in unity. 
 			//if player has created a player he gets his inserted name with a color
 			if(controller.playerColor === "black"){
@@ -450,6 +469,15 @@ onTouchMove:function(e){
 				textWidth = ctx.measureText(text).width;
 				ctx.fillText(text,canvas.width/2-(textWidth/2),100);
 			}
+
+			///testPlayer
+			if(testPlayer.xunits != undefined){
+			testPlayer.x += testPlayer.xunits;
+			testPlayer.y += testPlayer.yunits;
+			}
+			ctx.fillStyle = "#0F0";
+			ctx.fillRect(testPlayer.x,testPlayer.y,100,100);
+			///
 
 			controller.drawLog();
 
@@ -530,7 +558,6 @@ var projector = {
 		ctx.arc(projectorCanvas.width/2,projectorCanvas.height/2,100,0,Math.PI*2,true);
 		ctx.fill();
 		ctx.closePath();
-
 
 
 		for( i = 0; i < idsOnline; i++){
