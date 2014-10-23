@@ -63,8 +63,12 @@ socket.on('idAvailable',function(newId,available){
 			+" leftButton "+ data.leftButton
 			+" rightButton "+ data.rightButton
 			+" upButton "+ data.upButton
-			+" downButton "+ data.downButton);
+			+" downButton "+ data.downButton
+			+" angle "+ data.angle
+			+" dash "+ data.dash
+			);
 			io.sockets.emit('controllerInputUnity',data);
+
 
 
 	});

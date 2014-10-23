@@ -295,23 +295,22 @@ onTouchMove:function(e){
 				
 				//console.log(xunits);
 				//console.log(yunits);
-
-
-				if(Math.abs(controller.stick.angle) < 45){
-			//		console.log('left');
-			controller.direction = {left:true,right:false,up:false,down:false}
+				var angle = controller.stick.angle * (180/Math.PI)
+				if(Math.abs(angle) < 45){
+					console.log('right');
+			controller.direction = {left:false,right:true,up:false,down:false}
 		}
-		if(Math.abs(controller.stick.angle- 90) < 45){
-				//	console.log('up');
-				controller.direction = {left:false,right:false,up:true,down:false}
+		if(Math.abs(angle- 90) < 45){
+					console.log('down');
+				controller.direction = {left:false,right:false,up:false,down:true}
 			}
-			if(Math.abs(controller.stick.angle+90) < 45){
-			//		console.log('down');
-			controller.direction = {left:false,right:false,up:false,down:true}
+			if(Math.abs(angle+90) < 45){
+					console.log('up');
+			controller.direction = {left:false,right:false,up:true,down:false}
 		}
-		if((Math.abs(Math.abs(controller.stick.angle)-180) < 45)){
-				//	console.log('right');
-				controller.direction = {left:false,right:true,up:false,down:false}
+		if((Math.abs(Math.abs(angle)-180) < 45)){
+					console.log('left');
+				controller.direction = {left:true,right:false,up:false,down:false}
 			}
 				//console.log(controller.direction.left);
 				//console.log(controller.prevDirection.left);
@@ -324,7 +323,10 @@ onTouchMove:function(e){
 					'leftButton': controller.direction.left,
 					'rightButton': controller.direction.right,
 					'upButton':controller.direction.up,
-					'downButton':controller.direction.down
+					'downButton':controller.direction.down,
+
+					'angle':controller.stick.angle,
+					'dash':controller.stick.dash
 				});
 				controller.prevDirection = controller.direction;
 						//console.log(nickname)
