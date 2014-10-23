@@ -275,10 +275,16 @@ onTouchMove:function(e){
 				controller.stick.x2 = touch.clientX;
 				controller.stick.y2 = touch.clientY;
 				controller.stick.angle = (Math.atan2(controller.stick.y2-controller.stick.y,(controller.stick.x2-controller.stick.x))) ;
-				var speed = controller.stick.distance/5000;
+				var speed = controller.stick.distance/(canvas.width/3);
 				if(isNaN(speed)){
 					speed = 0;
 
+				}
+				if(speed > .15){
+					speed = .15;
+				}
+				if(controller.stick.dash){
+					speed = 2;
 				}
 				console.log(speed);
 
@@ -474,6 +480,19 @@ onTouchMove:function(e){
 			if(testPlayer.xunits != undefined){
 			testPlayer.x += testPlayer.xunits;
 			testPlayer.y += testPlayer.yunits;
+			}
+			var friction = .02;
+			if(testPlayer.xunits > 0){
+				testPlayer.xunits -= friction
+			}
+			if(testPlayer.yunits > 0){
+				testPlayer.yunits -= friction
+			}
+			if(testPlayer.yunits < 0){
+				testPlayer.yunits += friction
+			}
+			if(testPlayer.xunits < 0){
+				testPlayer.xunits += friction
 			}
 			ctx.fillStyle = "#0F0";
 			ctx.fillRect(testPlayer.x,testPlayer.y,100,100);
