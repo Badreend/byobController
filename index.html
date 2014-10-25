@@ -157,7 +157,6 @@ Badr Ismaili 2013-2014
 	var textWidth = undefined;
 	
 
-	var testPlayer = {x:100,y:100,xunits:0,yunits:0};
 
 	var controller = {
 		playerColor:"black",
@@ -166,8 +165,9 @@ Badr Ismaili 2013-2014
 		ctx:undefined,
 		buttonGr:undefined,
 		player:{x:50,y:50},
-		stick:{x:undefined,y:undefined,x2:undefined,y2:undefined,angle:undefined,distance:undefined,dash:undefined,down:false},
-		dashTimer:{newTime:undefined,delayTime:150},
+		stick:{x:undefined,y:undefined,x2:undefined,y2:undefined,angle:undefined,distance:undefined,dash:undefined,down:false,tapped:false},
+		dashTimer:{newTime:undefined,delayTime:250},
+		tapTimer:{newTime:0,delayTime:250},
 		direction:{left:false,right:false,up:false,down:false},
 		prevDirection:{left:false,right:false,up:false,down:false},
 		stickTouchId: -1
@@ -182,6 +182,8 @@ Badr Ismaili 2013-2014
 			buttonGr = ctx.createLinearGradient(100,0,0,canvas.height)
 			buttonGr.addColorStop(0,'#fff')
 			buttonGr.addColorStop(1,'#ccc')
+			controller.tapTimer.newTime = new Date().getTime() + controller.tapTimer.delayTime;
+			console.log(controller.tapTimer.newTime)
 
 
 			$nickForm.submit(function(e){
@@ -252,8 +254,7 @@ onTouchStart:function(e){
 			controller.stick.down = true;
 			controller.stick.x = touch.clientX;
 			controller.stick.y = touch.clientY;
-			console.log(controller.stick);
-
+			controller.tapped();
 			controller.dash("begin");
 		}
 	}
@@ -274,188 +275,165 @@ onTouchMove:function(e){
 
 				controller.stick.x2 = touch.clientX;
 				controller.stick.y2 = touch.clientY;
-				controller.stick.angle = (Math.atan2(controller.stick.y2-controller.stick.y,(controller.stick.x2-controller.stick.x))) ;
-				var speed = controller.stick.distance/(canvas.width/3);
-				if(isNaN(speed)){
-					speed = 0;
-
-				}
-				if(speed > .15){
-					speed = .15;
-				}
-				if(controller.stick.dash){
-					speed = 2;
-				}
-				console.log(speed);
-
-				var xunits = Math.cos(controller.stick.angle)*speed;
-				var yunits = Math.sin(controller.stick.angle)*speed;
-				testPlayer.xunits += xunits;
-				testPlayer.yunits += yunits;
-				
-				//console.log(xunits);
-				//console.log(yunits);
+				controller.stick.angle = (Math.atan2(controller.stick.y2-controller.stick.y,(controller.stick.x2-controller.stick.x)));
 				var angle = controller.stick.angle * (180/Math.PI)
 				if(Math.abs(angle) < 45){
 					console.log('right');
-			controller.direction = {left:false,right:true,up:false,down:false}
-		}
-		if(Math.abs(angle- 90) < 45){
+					controller.direction = {left:false,right:true,up:false,down:false}
+				}
+				if(Math.abs(angle- 90) < 45){
 					console.log('down');
-				controller.direction = {left:false,right:false,up:false,down:true}
-			}
-			if(Math.abs(angle+90) < 45){
+					controller.direction = {left:false,right:false,up:false,down:true}
+				}
+				if(Math.abs(angle+90) < 45){
 					console.log('up');
+					controller.direction = {left:false,right:false,up:true,down:false}
+				}
+				if((Math.abs(Math.abs(angle)-180) < 45)){
+					console.log('left');
+					controller.direction = {left:true,right:false,up:false,down:false}
+				}
+				controller.sendData();
+				controller.prevDirection = controller.direction;
+
+			}
+		}
+	}
+},
+onTouchEnd:function(e){
+	for(var i = 0; i<e.changedTouches.length; i++){
+		var touch =e.changedTouches[i]; 
+		if(controller.stickTouchId == touch.identifier)
+		{
+			controller.stickTouchId = -1; 
+			controller.stick= {x:undefined,y:undefined,x2:undefined,y2:undefined,angle:undefined,down:false};
+			controller.direction = {left:false,right:false,up:false,down:false};
+		}
+	}
+}
+,
+onMouseDown:function(e){
+	e.preventDefault;
+	controller.stick.down = true;
+	controller.stick.x = e.offsetX;
+	controller.stick.y = e.offsetY;
+	console.log(controller.stick)
+},
+
+
+
+
+onMouseMove:function(e){
+	e.preventDefault();
+	if(controller.stick.down){
+		controller.distance();
+		controller.stick.x2 = e.offsetX;
+		controller.stick.y2 = e.offsetY;
+		controller.stick.angle = Math.atan2(controller.stick.y-controller.stick.y2,(controller.stick.x-controller.stick.x2))* 180 / Math.PI;
+
+
+		if(Math.abs(controller.stick.angle) < 45){
+			console.log('left');
+			controller.direction = {left:true,right:false,up:false,down:false}
+		}
+		if(Math.abs(controller.stick.angle- 90) < 45){
+			console.log('up');
 			controller.direction = {left:false,right:false,up:true,down:false}
 		}
-		if((Math.abs(Math.abs(angle)-180) < 45)){
-					console.log('left');
-				controller.direction = {left:true,right:false,up:false,down:false}
-			}
-				//console.log(controller.direction.left);
-				//console.log(controller.prevDirection.left);
-				/*
-				if(controller.direction.left !== controller.prevDirection.left || controller.direction.right !== controller.prevDirection.right || controller.direction.up !== controller.prevDirection.up || controller.direction.down !== controller.prevDirection.down ){
-					*/
-				//	console.log('send')
-				socket.emit('controllerInput',{
-					'id':nickname,
-					'leftButton': controller.direction.left,
-					'rightButton': controller.direction.right,
-					'upButton':controller.direction.up,
-					'downButton':controller.direction.down,
-
-					'angle':controller.stick.angle,
-					'dash':controller.stick.dash
-				});
-				controller.prevDirection = controller.direction;
-						//console.log(nickname)
-					/*
-					}
-					*/
-				}
-			}
+		if(Math.abs(controller.stick.angle+90) < 45){
+			console.log('down');
+			controller.direction = {left:false,right:false,up:false,down:true}
 		}
-	},
-	onTouchEnd:function(e){
-		for(var i = 0; i<e.changedTouches.length; i++){
-			var touch =e.changedTouches[i]; 
-			if(controller.stickTouchId == touch.identifier)
-			{
-				controller.stickTouchId = -1; 
-
-				controller.stick= {x:undefined,y:undefined,x2:undefined,y2:undefined,angle:undefined,down:false};
-				controller.direction = {left:false,right:false,up:false,down:false};
-			}
+		if((Math.abs(Math.abs(controller.stick.angle)-180) < 45)){
+			console.log('right');
+			controller.direction = {left:false,right:true,up:false,down:false}
 		}
+		if(controller.direction !== controller.prevDirection)
+			controller.sendData();
+		controller.prevDirection = controller.direction;
 
 	}
-	,
-	onMouseDown:function(e){
-		e.preventDefault;
-		controller.stick.down = true;
-		controller.stick.x = e.offsetX;
-		controller.stick.y = e.offsetY;
-		console.log(controller.stick)
-	},
-
-
-
-
-	onMouseMove:function(e){
-		e.preventDefault();
-		if(controller.stick.down){
-			controller.distance();
-			controller.stick.x2 = e.offsetX;
-			controller.stick.y2 = e.offsetY;
-			controller.stick.angle = Math.atan2(controller.stick.y-controller.stick.y2,(controller.stick.x-controller.stick.x2))* 180 / Math.PI;
-
-
-			if(Math.abs(controller.stick.angle) < 45){
-				console.log('left');
-				controller.direction = {left:true,right:false,up:false,down:false}
-			}
-			if(Math.abs(controller.stick.angle- 90) < 45){
-				console.log('up');
-				controller.direction = {left:false,right:false,up:true,down:false}
-			}
-			if(Math.abs(controller.stick.angle+90) < 45){
-				console.log('down');
-				controller.direction = {left:false,right:false,up:false,down:true}
-			}
-			if((Math.abs(Math.abs(controller.stick.angle)-180) < 45)){
-				console.log('right');
-				controller.direction = {left:false,right:true,up:false,down:false}
-			}
-			if(controller.direction !== controller.prevDirection)
-				socket.emit('controllerInput',{
-					'id':nickname,
-					'leftButton': controller.direction.left,
-					'rightButton': controller.direction.right,
-					'upButton':controller.direction.up,
-					'downButton':controller.direction.down
-				});
-			controller.prevDirection = controller.direction;
-			console.log('sending')
-		}
-	},
-	onMouseUp:function(e){
+},
+sendData:function(){
+	socket.emit('controllerInput',{
+		'id':nickname,
+		'leftButton': controller.direction.left,
+		'rightButton': controller.direction.right,
+		'upButton':controller.direction.up,
+		'downButton':controller.direction.down,
+		'distance':controller.stick.distance,
+		'screenWidth':canvas.width,
+		'tapped':controller.stick.tapped
+	});
+	console.log('sendData')
+},
+onMouseUp:function(e){
 			//reset stick
 			controller.stick= {x:undefined,y:undefined,x2:undefined,y2:undefined,angle:undefined,down:false};
 			controller.direction = {left:false,right:false,up:false,down:false};
 		},
 
 		distance:function(){
-			//calculating distance
-
-
 
 			var dx = controller.stick.x2 - controller.stick.x;
 			var dy = controller.stick.y2 - controller.stick.y;
 			controller.stick.distance = Math.sqrt(dx*dx + dy*dy);
 
 
-				//console.log(controller.stick.distance);
+		},
+		tapped:function(){
+			currentTime = new Date().getTime();
+			if(currentTime < controller.tapTimer.newTime){
+				console.log("newTap");
+				controller.stick.tapped = true;
+				controller.sendData();
+				controller.stick.tapped = false;
+				controller.tapTimer.newTime = currentTime + controller.
+				tapTimer.delayTime;
+			}else{
+				controller.tapTimer.newTime = currentTime + controller.tapTimer.delayTime;
 
-			},
-			dash:function(dashState){
-				currentTime = new Date().getTime();
+			}
 
-				switch(dashState){
+		},
+		dash:function(dashState){
+			currentTime = new Date().getTime();
 
-					case "begin":
-					controller.dashTimer.newTime = currentTime + controller.dashTimer.delayTime;
-					break;
-					case "dash":
+			switch(dashState){
+
+				case "begin":
+				controller.dashTimer.newTime = currentTime + controller.dashTimer.delayTime;
+				break;
+				case "dash":
 				//	console.log(controller.dashTimer.newTime );
 				//	console.log(currentTime)
-					if(controller.dashTimer.newTime > currentTime){
+				if(controller.dashTimer.newTime > currentTime){
 
 
-						console.log("Dash");
-						if(controller.stick.distance > canvas.width/4){
-							controller.stick.dash = true;
-						}
-
-					}else{
-					//	console.log("its over");
-						controller.stick.dash = undefined;
-
-
+					console.log("Dash");
+					if(controller.stick.distance > canvas.width/4){
+						controller.stick.dash = true;
 					}
-					break;
-					case "end":
 
-					break;
+				}else{
+					//	console.log("its over");
+					controller.stick.dash = undefined;
+
+
 				}
-			},
-			draw:function(){
-				canvas.width = window.innerWidth;
-				canvas.height = window.innerHeight;
+				break;
+				case "end":
+
+				break;
+			}
+		},
+		draw:function(){
+			canvas.width = window.innerWidth;
+			canvas.height = window.innerHeight;
 
 
-				ctx.fillStyle="#111";
-				ctx.fillRect(0,0,canvas.width,canvas.height);
+			ctx.fillStyle="#111";
+			ctx.fillRect(0,0,canvas.width,canvas.height);
 
 			ctx.fillStyle=controller.playerColor;
 			ctx.fillRect(0,50,canvas.width,100);
@@ -463,7 +441,7 @@ onTouchMove:function(e){
 			controller.stickDraw();
 
 
-		
+
 			//swipe to create an player in unity. 
 			//if player has created a player he gets his inserted name with a color
 			if(controller.playerColor === "black"){
@@ -478,71 +456,48 @@ onTouchMove:function(e){
 				ctx.fillText(text,canvas.width/2-(textWidth/2),100);
 			}
 
-			///testPlayer
-			if(testPlayer.xunits != undefined){
-			testPlayer.x += testPlayer.xunits;
-			testPlayer.y += testPlayer.yunits;
-			}
-			var friction = .02;
-			if(testPlayer.xunits > 0){
-				testPlayer.xunits -= friction
-			}
-			if(testPlayer.yunits > 0){
-				testPlayer.yunits -= friction
-			}
-			if(testPlayer.yunits < 0){
-				testPlayer.yunits += friction
-			}
-			if(testPlayer.xunits < 0){
-				testPlayer.xunits += friction
-			}
-			ctx.fillStyle = "#0F0";
-			ctx.fillRect(testPlayer.x,testPlayer.y,100,100);
-			///
 
 			controller.drawLog();
-
-
 			window.requestAnimationFrame(controller.draw);
 		},
 
 
 		drawLog:function(){
 			ctx.fillStyle = "#fff";
-			//ctx.fillRect(0,0,200,200);
 			ctx.font= "20px Verdana";
 			ctx.fillText("Distance: " + controller.stick.distance,50,50);
 			ctx.fillText("Dash: " + controller.stick.dash,50,80);
+			ctx.fillText("Tapped: " + controller.stick.tapped,50,100);
+
 		},
 
 		stickDraw:function(){
-	//controller.stick.x = canvas.width/2;
-	//controller.stick.y = canvas.height/2;
+		ctx.shadowColor = '#ffffff';
+		ctx.shadowBlur = 10;
+		ctx.shadowOffsetX = 0;
+		ctx.shadowOffsetY = 0;
+		ctx.beginPath(); 
+		ctx.strokeStyle = "#fff"; 
+		ctx.lineWidth = 6; 
+		ctx.arc(controller.stick.x2, controller.stick.y2, 40,0,Math.PI*2,true); 
+		ctx.stroke();
+		ctx.beginPath(); 
+		ctx.lineWidth = 2; 
+		ctx.arc(controller.stick.x, controller.stick.y, 60,0,Math.PI*2,true); 
+		ctx.stroke();
+		ctx.beginPath(); 
+		ctx.arc(controller.stick.x2, controller.stick.y2, 40, 0,Math.PI*2, true); 
+		ctx.stroke(); 
+		ctx.closePath();
+		ctx.beginPath();;
+		ctx.moveTo(controller.stick.x,controller.stick.y);
+		ctx.lineTo(controller.stick.x2,controller.stick.y2);
+		ctx.stroke();
 
-	ctx.shadowColor = '#ffffff';
-	ctx.shadowBlur = 10;
-	ctx.shadowOffsetX = 0;
-	ctx.shadowOffsetY = 0;
-	ctx.beginPath(); 
-	ctx.strokeStyle = "#fff"; 
-	ctx.lineWidth = 6; 
-	ctx.arc(controller.stick.x2, controller.stick.y2, 40,0,Math.PI*2,true); 
-	ctx.stroke();
-	ctx.beginPath(); 
-	ctx.lineWidth = 2; 
-	ctx.arc(controller.stick.x, controller.stick.y, 60,0,Math.PI*2,true); 
-	ctx.stroke();
-	ctx.beginPath(); 
-	ctx.arc(controller.stick.x2, controller.stick.y2, 40, 0,Math.PI*2, true); 
-	ctx.stroke(); 
-	ctx.closePath();
-	ctx.beginPath();;
-	ctx.moveTo(controller.stick.x,controller.stick.y);
-	ctx.lineTo(controller.stick.x2,controller.stick.y2);
-	ctx.stroke();
-
-},
+		},
 }// end controller
+
+
 
 /*--------------------------------------------- */
 var projector = {
@@ -582,19 +537,17 @@ var projector = {
 
 
 		for( i = 0; i < idsOnline; i++){
-		//		ctx.drawImage(handImg,idsLoc[i].x,idsLoc[i].y);
-		//		ctx.fillRect(idsLoc[i].x-20,idsLoc[i].y-20,50,50);
-		ctx.font='20px Arial';
-		ctx.fillStyle="#fff";
-		ctx.fillText(ids[i],idsLoc[i].x+10,idsLoc[i].y+15);
+			ctx.font='20px Arial';
+			ctx.fillStyle="#fff";
+			ctx.fillText(ids[i],idsLoc[i].x+10,idsLoc[i].y+15);
+		}
+
+		window.requestAnimationFrame(projector.draw);
+
 	}
-
-	window.requestAnimationFrame(projector.draw);
-
-}
 }
 
-
+// serverInput
 socket.on('idsOnline', function(dataId,dataLoc){
 	idsOnline = dataId.length;
 	ids = dataId;
@@ -611,8 +564,6 @@ if( /Android|webOS|iPhone|Chrome|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test
 	controller.init();
 
 }else{
-	//If projector is on this page use: projector.init();
-	//projector.init();
 	controller.init();
 }
 }

@@ -66,6 +66,9 @@ socket.on('idAvailable',function(newId,available){
 			+" downButton "+ data.downButton
 			+" angle "+ data.angle
 			+" dash "+ data.dash
+			+" distance "+ data.distance
+			+" screenWidth " + data.screenWidth
+			+" tapped " + data.tapped
 			);
 			io.sockets.emit('controllerInputUnity',data);
 
