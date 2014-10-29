@@ -64,7 +64,7 @@ socket.on('idAvailable',function(newId,available){
 			+" rightButton "+ data.rightButton
 			+" upButton "+ data.upButton
 			+" downButton "+ data.downButton
-			+" angle "+ data.angle
+			+" radians "+ data.radians
 			+" dash "+ data.dash
 			+" distance "+ data.distance
 			+" screenWidth " + data.screenWidth

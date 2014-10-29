@@ -165,7 +165,7 @@ Badr Ismaili 2013-2014
 		ctx:undefined,
 		buttonGr:undefined,
 		player:{x:50,y:50},
-		stick:{x:undefined,y:undefined,x2:undefined,y2:undefined,angle:undefined,distance:undefined,dash:undefined,down:false,tapped:false},
+		stick:{x:undefined,y:undefined,x2:undefined,y2:undefined,angle:0,distance:0,dash:false,down:false,tapped:false},
 		dashTimer:{newTime:undefined,delayTime:250},
 		tapTimer:{newTime:0,delayTime:250},
 		direction:{left:false,right:false,up:false,down:false},
@@ -306,7 +306,8 @@ onTouchEnd:function(e){
 		if(controller.stickTouchId == touch.identifier)
 		{
 			controller.stickTouchId = -1; 
-			controller.stick= {x:undefined,y:undefined,x2:undefined,y2:undefined,angle:undefined,down:false};
+			controller.resetStick();
+
 			controller.direction = {left:false,right:false,up:false,down:false};
 		}
 	}
@@ -354,6 +355,10 @@ onMouseMove:function(e){
 
 	}
 },
+resetStick:function(){
+	var prevRadians = controller.stick.angle;
+	controller.stick = {x:undefined,y:undefined,x2:undefined,y2:undefined,angle:prevRadians,distance:0,dash:false,down:false,tapped:false}
+},
 sendData:function(){
 	socket.emit('controllerInput',{
 		'id':nickname,
@@ -361,6 +366,8 @@ sendData:function(){
 		'rightButton': controller.direction.right,
 		'upButton':controller.direction.up,
 		'downButton':controller.direction.down,
+		'radians':controller.stick.angle,
+		'dash':controller.stick.dash,
 		'distance':controller.stick.distance,
 		'screenWidth':canvas.width,
 		'tapped':controller.stick.tapped
