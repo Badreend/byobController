@@ -479,7 +479,12 @@ onMouseUp:function(e){
 		},
 
 		stickDraw:function(){
-		ctx.shadowColor = '#ffffff';
+		if(controller.playerColor != "black"){
+			ctx.shadowColor = controller.playerColor;
+		}else{
+			ctx.shadowColor = "#fff";
+		}
+		ctx.shadowColor = "#fff";
 		ctx.shadowBlur = 10;
 		ctx.shadowOffsetX = 0;
 		ctx.shadowOffsetY = 0;
